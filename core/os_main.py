@@ -1,99 +1,107 @@
-import os
-import sys
-import time
+import os, time, sys
 from datetime import datetime
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from rich.text import Text
+from rich.progress import track
+from rich.columns import Columns
 
-# Инициализируем консоль Rich
 console = Console()
 
-def clear_screen():
-    """Очистка экрана в зависимости от платформы"""
-    os.system('cls' if os.name == 'nt' else 'clear')
+def clear(): os.system('cls' if os.name == 'nt' else 'clear')
 
-def show_help():
-    """Красивая таблица с командами"""
-    table = Table(title="Доступные команды", style="cyan")
-    table.add_column("Команда", style="bold blue", no_wrap=True)
-    table.add_column("Описание", style="white")
-    
-    table.add_row("help", "Показать этот список команд")
-    table.add_row("clear", "Очистить экран")
-    table.add_row("time", "Показать текущее время и дату")
-    table.add_row("sysinfo", "Информация о системе")
-    table.add_row("echo [текст]", "Вывести текст на экран")
-    table.add_row("exit", "Завершить работу BlueOS")
-    
+def get_weather():
+    # Погода специально для твоего региона
+    return "[bold cyan]Петрозаводск:[/] +12°C, Переменная облачность (Эмуляция)"
+
+def neofetch():
+    sys_info = (
+        "[bold cyan]OS:[/] BlueOS v1.2\n"
+        "[bold cyan]Kernel:[/] Python 3.x Hybrid\n"
+        "[bold cyan]Shell:[/] BlueShell\n"
+        "[bold cyan]Theme:[/] Midnight Blue\n"
+        "[bold cyan]Location:[/] Petrozavodsk, Karelia"
+    )
+    logo = "[bold blue]      ____  __           \n     / __ )/ /_  _____  \n    / __  / / / / / _ \\ \n   / /_/ / / /_/ /  __/ \n  /_____/_/\\__,_/\\___/  [/]"
+    console.print(Panel(Columns([logo, sys_info]), title="System Status", border_style="cyan"))
+
+def file_manager():
+    files = os.listdir('data') if os.path.exists('data') else []
+    table = Table(title="Файлы в /data", style="blue")
+    table.add_column("Имя файла", style="cyan")
+    table.add_column("Размер", justify="right")
+    for f in files:
+        size = os.path.getsize(f"data/{f}")
+        table.add_row(f, f"{size} bytes")
     console.print(table)
 
-def boot_sequence():
-    """Имитация красивой загрузки системы"""
-    clear_screen()
-    console.print("[bold blue]Инициализация ядра BlueOS...[/bold blue]")
-    time.sleep(0.7)
-    console.print("[bold cyan]Загрузка модулей файловой системы...[/bold cyan]")
-    time.sleep(0.5)
-    console.print("[bold cyan]Подключение графического интерфейса терминала...[/bold cyan]")
-    time.sleep(0.5)
-    clear_screen()
+def main():
+    clear()
+    for _ in track(range(10), description="[bold blue]Загрузка ядра..."):
+        time.sleep(0.1)
     
-    # Главное приветствие в рамке
-    welcome_text = Text("Добро пожаловать в BlueOS", style="bold cyan on black", justify="center")
-    console.print(Panel(welcome_text, border_style="blue", padding=(1, 2)))
-    print()
+    clear()
+    neofetch()
+    console.print(f" {get_weather()}\n", justify="center")
 
-def main_loop():
-    """Главный цикл операционной системы"""
-    boot_sequence()
-    
     while True:
         try:
-            # Кастомная строка ввода пользователя
-            command_line = console.input("[bold cyan]BlueOS[/bold cyan]@[bold blue]root[/bold blue]> ")
-            args = command_line.strip().split()
+            cmd = console.input("[bold cyan]BlueOS[/]>[bold white] ").strip().split()
+            if not cmd: continue
             
-            if not args:
-                continue
-                
-            cmd = args[0].lower()
-            
-            # Обработка команд
-            if cmd == "help":
-                show_help()
-            elif cmd == "clear":
-                clear_screen()
-            elif cmd == "time":
-                now = datetime.now().strftime("%H:%M:%S | %d.%m.%Y")
-                console.print(f"[{'cyan'}]Текущее время:[/] {now}")
-            elif cmd == "sysinfo":
-                info_panel = Panel(
-                    "ОС: [bold cyan]BlueOS v1.0[/bold cyan]\n"
-                    "База: Python Core / Windows Host\n"
-                    "Пользователь: root\n"
-                    "Интерфейс: Rich Terminal",
-                    title="Системная информация",
-                    border_style="blue"
-                )
-                console.print(info_panel)
-            elif cmd == "echo":
-                text = " ".join(args[1:])
-                console.print(f"[white]{text}[/white]")
-            elif cmd == "exit":
-                console.print("[bold red]Завершение работы системы...[/bold red]")
-                time.sleep(1)
+            base = cmd[0].lower()
+            args = cmd[1:]
+
+            if base == "help":
+                t = Table(show_header=False, border_style="blue")
+                t.add_row("ls", "Список файлов в папке данных")
+                t.add_row("touch [имя]", "Создать пустой файл")
+                t.add_row("rm [имя]", "Удалить файл")
+                t.add_row("calc [выражение]", "Математический калькулятор")
+                t.add_row("weather", "Прогноз погоды")
+                t.add_row("fetch", "Информация о системе")
+                t.add_row("clear", "Очистить экран")
+                t.add_row("exit", "Выход")
+                console.print(t)
+
+            elif base == "ls":
+                file_manager()
+
+            elif base == "touch":
+                if args:
+                    os.makedirs('data', exist_ok=True)
+                    open(f"data/{args[0]}", 'a').close()
+                    console.print(f"[green]Файл {args[0]} создан.[/]")
+                else: console.print("[red]Укажите имя файла[/]")
+
+            elif base == "rm":
+                if args and os.path.exists(f"data/{args[0]}"):
+                    os.remove(f"data/{args[0]}")
+                    console.print(f"[red]Файл {args[0]} удален.[/]")
+
+            elif base == "calc":
+                try: res = eval(" ".join(args))
+                except: res = "Ошибка в выражении"
+                console.print(f"[bold yellow]Результат:[/] {res}")
+
+            elif base == "weather":
+                console.print(get_weather())
+
+            elif base == "fetch":
+                neofetch()
+
+            elif base == "clear":
+                clear()
+
+            elif base == "exit":
+                console.print("[bold red]Завершение сессии...[/]")
                 break
+            
             else:
-                console.print(f"[bold red]Ошибка:[/bold red] команда '{cmd}' не найдена. Введите 'help' для справки.")
-                
-        except KeyboardInterrupt:
-            # Защита от случайного нажатия Ctrl+C
-            print("\n")
-            continue
+                console.print(f"[red]Команда '{base}' не распознана. Введи 'help'.[/]")
+
         except Exception as e:
-            console.print(f"[bold red]Критическая ошибка ядра:[/bold red] {e}")
+            console.print(f"[bold red]Ошибка:[/] {e}")
 
 if __name__ == "__main__":
-    main_loop()
+    main()
