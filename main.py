@@ -73,7 +73,7 @@ def main():
         print("Обновлений нет. Запуск...")
     
     # Запуск ОС в новом окне
-    os.system('start cmd /c "title BlueOS Terminal & mode con: cols=100 lines=30 & python core/os_main.py"')
+        os.system('start /max cmd /c "title BlueOS Terminal & python core/os_main.py"')
 
 if __name__ == "__main__":
     main()
